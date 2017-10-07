@@ -1,255 +1,223 @@
-﻿using com.clusterrr.Famicom;
-using com.clusterrr.hakchi_gui.Properties;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.IO;
 using System.Windows.Forms;
 using System.Xml;
+using com.clusterrr.Famicom;
+using com.clusterrr.hakchi_gui.Properties;
 
-namespace com.clusterrr.hakchi_gui
-{
-    class GameGenieCode
-    {
-        public delegate void ChangedEvent(GameGenieCode e);
-        public event ChangedEvent Changed;
+namespace com.clusterrr.hakchi_gui {
+	internal class GameGenieCode {
+		public delegate void ChangedEvent(GameGenieCode e);
 
-        private string FCode = "";
-        private string FDescription = "";
-        private string FOldCode;
-        private string FOldDescription;
+		private string FCode = "";
+		private string FDescription = "";
 
-        public string Code
-        {
-            get { return FCode; }
-            set
-            {
-                if (FCode != value)
-                {
-                    FOldCode = FCode;
-                    FCode = value;
-                    if ((FOldCode != "") && (Changed != null))
-                        Changed(this);
-                }
-            }
-        }
-        public string Description
-        {
-            get { return FDescription; }
-            set
-            {
-                if (FDescription != value)
-                {
-                    FOldDescription = FDescription;
-                    FDescription = value;
-                    if ((FOldDescription != "") && (Changed != null))
-                        Changed(this);
-                }
-            }
-        }
-        public string OldCode { get { return FOldCode; } }
-        public string OldDescription { get { return FOldDescription; } }
+		public GameGenieCode(string ACode, string ADescription) {
+			Code = ACode;
+			Description = ADescription;
+		}
 
-        public override string ToString()
-        {
-            return Description;
-        }
+		public string Code {
+			get => FCode;
+			set {
+				if (FCode != value) {
+					OldCode = FCode;
+					FCode = value;
+					if (OldCode != "" && Changed != null)
+						Changed(this);
+				}
+			}
+		}
 
-        public GameGenieCode(string ACode, string ADescription)
-        {
-            Code = ACode;
-            Description = ADescription;
-        }
-    }
+		public string Description {
+			get => FDescription;
+			set {
+				if (FDescription != value) {
+					OldDescription = FDescription;
+					FDescription = value;
+					if (OldDescription != "" && Changed != null)
+						Changed(this);
+				}
+			}
+		}
 
-    class GameGenieDataBase
-    {
-        private XmlDocument FXml = new XmlDocument();
-        private XmlNode FGameNode = null;
-        private List<GameGenieCode> FGameCodes = null;
-        private string originalDatabasePath = Path.Combine(Path.Combine(Program.BaseDirectoryInternal, "data"), "GameGenieDB.xml");
-        private string userDatabasePath = Path.Combine(Path.Combine(Program.BaseDirectoryExternal, ConfigIni.ConfigDir), "GameGenieDB.xml");
-        private NesMiniApplication FGame = null;
-        private bool FModified = false;
+		public string OldCode { get; private set; }
 
-        private XmlNode GameNode
-        {
-            get
-            {
-                if (FGameNode == null)
-                {
-                    FGameNode = FXml.SelectSingleNode(string.Format("/database/game[@code='{0}']", FGame.Code));
+		public string OldDescription { get; private set; }
 
-                    if (FGameNode == null)
-                    {
-                        string lGamesDir = Path.Combine(Program.BaseDirectoryExternal, "games");
-                        NesFile lGame = new NesFile(Path.Combine(Path.Combine(lGamesDir, FGame.Code), FGame.Code + ".nes"));
-                        XmlAttribute lXmlAttribute;
+		public event ChangedEvent Changed;
 
-                        FGameNode = FXml.CreateElement("game");
-                        FXml.DocumentElement.AppendChild(FGameNode);
+		public override string ToString() {
+			return Description;
+		}
+	}
 
-                        lXmlAttribute = FXml.CreateAttribute("code");
-                        lXmlAttribute.Value = FGame.Code;
-                        FGameNode.Attributes.Append(lXmlAttribute);
+	internal class GameGenieDataBase {
+		private readonly NesMiniApplication FGame;
+		private List<GameGenieCode> FGameCodes;
+		private XmlNode FGameNode;
+		private readonly XmlDocument FXml = new XmlDocument();
 
-                        lXmlAttribute = FXml.CreateAttribute("name");
-                        lXmlAttribute.Value = FGame.Name;
-                        FGameNode.Attributes.Append(lXmlAttribute);
+		private readonly string originalDatabasePath =
+			Path.Combine(Path.Combine(Program.BaseDirectoryInternal, "data"), "GameGenieDB.xml");
 
-                        lXmlAttribute = FXml.CreateAttribute("crc");
-                        lXmlAttribute.Value = lGame.CRC32.ToString("X");
-                        FGameNode.Attributes.Append(lXmlAttribute);
-                    }
-                }
-                return FGameNode;
-            }
-        }
+		private readonly string userDatabasePath =
+			Path.Combine(Path.Combine(Program.BaseDirectoryExternal, ConfigIni.ConfigDir), "GameGenieDB.xml");
 
-        public List<GameGenieCode> GameCodes
-        {
-            get
-            {
-                if (FGameCodes == null)
-                {
-                    FGameCodes = new List<GameGenieCode>();
-                    XmlNodeList lCodes = FXml.SelectNodes(string.Format("/database/game[@code='{0}']//gamegenie", FGame.Code));
-                    foreach (XmlNode lCurNode in lCodes)
-                    {
-                        GameGenieCode lCurCode = new GameGenieCode(lCurNode.Attributes.GetNamedItem("code").Value, lCurNode.Attributes.GetNamedItem("description").Value);
-                        FGameCodes.Add(lCurCode);
-                    }
-                }
-                return FGameCodes;
-            }
-        }
+		public GameGenieDataBase(NesMiniApplication AGame) {
+			//DataBasePath = Path.Combine(Path.Combine(Program.BaseDirectoryInternal, "data"), "GameGenieDB.xml");
+			FGame = AGame;
+			//FDBName = DataBasePath;
+			if (File.Exists(userDatabasePath))
+				FXml.Load(userDatabasePath);
+			else if (File.Exists(originalDatabasePath))
+				FXml.Load(originalDatabasePath);
+			else
+				FXml.AppendChild(FXml.CreateElement("database"));
+		}
 
-        public bool Modified
-        {
-            get
-            {
-                return FModified;
-            }
+		private XmlNode GameNode {
+			get {
+				if (FGameNode == null) {
+					FGameNode = FXml.SelectSingleNode(string.Format("/database/game[@code='{0}']", FGame.Code));
 
-        }
+					if (FGameNode == null) {
+						var lGamesDir = Path.Combine(Program.BaseDirectoryExternal, "games");
+						var lGame = new NesFile(Path.Combine(Path.Combine(lGamesDir, FGame.Code), FGame.Code + ".nes"));
+						XmlAttribute lXmlAttribute;
 
-        public GameGenieDataBase(NesMiniApplication AGame)
-        {
-            //DataBasePath = Path.Combine(Path.Combine(Program.BaseDirectoryInternal, "data"), "GameGenieDB.xml");
-            FGame = AGame;
-            //FDBName = DataBasePath;
-            if (File.Exists(userDatabasePath))
-                FXml.Load(userDatabasePath);
-            else if (File.Exists(originalDatabasePath))
-                FXml.Load(originalDatabasePath);
-            else
-                FXml.AppendChild(FXml.CreateElement("database"));
-        }
+						FGameNode = FXml.CreateElement("game");
+						FXml.DocumentElement.AppendChild(FGameNode);
 
-        public void AddCode(GameGenieCode ACode)
-        {
-            FModified = true;
+						lXmlAttribute = FXml.CreateAttribute("code");
+						lXmlAttribute.Value = FGame.Code;
+						FGameNode.Attributes.Append(lXmlAttribute);
 
-            XmlNode lCodeNode = FXml.CreateElement("gamegenie");
-            GameNode.AppendChild(lCodeNode);
+						lXmlAttribute = FXml.CreateAttribute("name");
+						lXmlAttribute.Value = FGame.Name;
+						FGameNode.Attributes.Append(lXmlAttribute);
 
-            XmlAttribute lAttribute;
+						lXmlAttribute = FXml.CreateAttribute("crc");
+						lXmlAttribute.Value = lGame.CRC32.ToString("X");
+						FGameNode.Attributes.Append(lXmlAttribute);
+					}
+				}
+				return FGameNode;
+			}
+		}
 
-            lAttribute = FXml.CreateAttribute("code");
-            lAttribute.Value = ACode.Code.ToUpper().Trim();
-            lCodeNode.Attributes.Append(lAttribute);
+		public List<GameGenieCode> GameCodes {
+			get {
+				if (FGameCodes == null) {
+					FGameCodes = new List<GameGenieCode>();
+					var lCodes = FXml.SelectNodes(string.Format("/database/game[@code='{0}']//gamegenie", FGame.Code));
+					foreach (XmlNode lCurNode in lCodes) {
+						var lCurCode = new GameGenieCode(lCurNode.Attributes.GetNamedItem("code").Value,
+							lCurNode.Attributes.GetNamedItem("description").Value);
+						FGameCodes.Add(lCurCode);
+					}
+				}
+				return FGameCodes;
+			}
+		}
 
-            lAttribute = FXml.CreateAttribute("description");
-            lAttribute.Value = ACode.Description;
-            lCodeNode.Attributes.Append(lAttribute);
+		public bool Modified { get; private set; }
 
-            if (FGameCodes == null)
-                FGameCodes = new List<GameGenieCode>();
+		public void AddCode(GameGenieCode ACode) {
+			Modified = true;
 
-            FGameCodes.Add(ACode);
-        }
+			XmlNode lCodeNode = FXml.CreateElement("gamegenie");
+			GameNode.AppendChild(lCodeNode);
 
-        public void ModifyCode(GameGenieCode ACode)
-        {
-            XmlNode lCurCode = GameNode.SelectSingleNode(string.Format("gamegenie[@code='{0}']", ACode.OldCode.ToUpper().Trim()));
-            if (lCurCode != null)
-            {
-                lCurCode.Attributes.GetNamedItem("code").Value = ACode.Code.ToUpper().Trim();
-                lCurCode.Attributes.GetNamedItem("description").Value = ACode.Description;
-                FModified = true;
-            }
-        }
+			XmlAttribute lAttribute;
 
-        public void DeleteCode(GameGenieCode ACode)
-        {
-            XmlNode lCurCode = GameNode.SelectSingleNode(string.Format("gamegenie[@code='{0}']", ACode.Code.ToUpper().Trim()));
-            if (lCurCode != null)
-                lCurCode.ParentNode.RemoveChild(lCurCode);
-            FGameCodes.Remove(ACode);
-            FModified = true;
-        }
+			lAttribute = FXml.CreateAttribute("code");
+			lAttribute.Value = ACode.Code.ToUpper().Trim();
+			lCodeNode.Attributes.Append(lAttribute);
 
-        public void ImportCodes(string AFileName, bool AQuiet = false)
-        {
-            if (File.Exists(AFileName))
-            {
-                XmlDocument lXml = new XmlDocument();
-                XmlNodeList lCodes = null;
-                XmlNode lCodeNode = null;
-                XmlAttribute lAttribute = null;
+			lAttribute = FXml.CreateAttribute("description");
+			lAttribute.Value = ACode.Description;
+			lCodeNode.Attributes.Append(lAttribute);
 
-                lXml.Load(AFileName);
-                lCodes = lXml.SelectNodes("//genie/..");
+			if (FGameCodes == null)
+				FGameCodes = new List<GameGenieCode>();
 
-                FModified = true;
+			FGameCodes.Add(ACode);
+		}
 
-                XmlNode lDeleteNode = GameNode.FirstChild;
-                while (lDeleteNode != null)
-                {
-                    GameNode.RemoveChild(GameNode.FirstChild);
-                    lDeleteNode = GameNode.FirstChild;
-                }
-                GameCodes.Clear();
+		public void ModifyCode(GameGenieCode ACode) {
+			var lCurCode = GameNode.SelectSingleNode(string.Format("gamegenie[@code='{0}']", ACode.OldCode.ToUpper().Trim()));
+			if (lCurCode != null) {
+				lCurCode.Attributes.GetNamedItem("code").Value = ACode.Code.ToUpper().Trim();
+				lCurCode.Attributes.GetNamedItem("description").Value = ACode.Description;
+				Modified = true;
+			}
+		}
 
-                string lGameFileName = Path.Combine(Path.Combine(Path.Combine(Program.BaseDirectoryExternal, "games"), FGame.Code), FGame.Code + ".nes");
-                foreach (XmlNode lCurCode in lCodes)
-                {
-                    NesFile lGame = new NesFile(lGameFileName);
-                    try
-                    {
-                        lGame.PRG = GameGeniePatcher.Patch(lGame.PRG, lCurCode["genie"].InnerText);
+		public void DeleteCode(GameGenieCode ACode) {
+			var lCurCode = GameNode.SelectSingleNode(string.Format("gamegenie[@code='{0}']", ACode.Code.ToUpper().Trim()));
+			if (lCurCode != null)
+				lCurCode.ParentNode.RemoveChild(lCurCode);
+			FGameCodes.Remove(ACode);
+			Modified = true;
+		}
 
-                        lCodeNode = FXml.CreateElement("gamegenie");
-                        GameNode.AppendChild(lCodeNode);
+		public void ImportCodes(string AFileName, bool AQuiet = false) {
+			if (File.Exists(AFileName)) {
+				var lXml = new XmlDocument();
+				XmlNodeList lCodes = null;
+				XmlNode lCodeNode = null;
+				XmlAttribute lAttribute = null;
 
-                        lAttribute = FXml.CreateAttribute("code");
-                        lAttribute.Value = lCurCode["genie"].InnerText.ToUpper().Trim();
-                        lCodeNode.Attributes.Append(lAttribute);
+				lXml.Load(AFileName);
+				lCodes = lXml.SelectNodes("//genie/..");
 
-                        lAttribute = FXml.CreateAttribute("description");
-                        lAttribute.Value = lCurCode["description"].InnerText;
-                        lCodeNode.Attributes.Append(lAttribute);
+				Modified = true;
 
-                        GameCodes.Add(new GameGenieCode(lCurCode["genie"].InnerText.ToUpper().Trim(), lCurCode["description"].InnerText));
-                    }
-                    catch (GameGenieFormatException)
-                    {
-                        if (!AQuiet)
-                            MessageBox.Show(string.Format(Resources.GameGenieFormatError, lCurCode["genie"].InnerText, FGame.Name), Resources.Error, MessageBoxButtons.OK, MessageBoxIcon.Error);
-                    }
-                    catch (GameGenieNotFoundException)
-                    {
-                        if (!AQuiet)
-                            MessageBox.Show(string.Format(Resources.GameGenieNotFound, lCurCode["genie"].InnerText, FGame.Name), Resources.Error, MessageBoxButtons.OK, MessageBoxIcon.Error);
-                    }
-                }
-            }
-        }
+				var lDeleteNode = GameNode.FirstChild;
+				while (lDeleteNode != null) {
+					GameNode.RemoveChild(GameNode.FirstChild);
+					lDeleteNode = GameNode.FirstChild;
+				}
+				GameCodes.Clear();
 
-        public void Save()
-        {
-            if (GameCodes.Count == 0)
-                GameNode.ParentNode.RemoveChild(GameNode);
-            Directory.CreateDirectory(Path.GetDirectoryName(userDatabasePath));
-            FXml.Save(userDatabasePath);
-        }
-    }
+				var lGameFileName = Path.Combine(Path.Combine(Path.Combine(Program.BaseDirectoryExternal, "games"), FGame.Code),
+					FGame.Code + ".nes");
+				foreach (XmlNode lCurCode in lCodes) {
+					var lGame = new NesFile(lGameFileName);
+					try {
+						lGame.PRG = GameGeniePatcher.Patch(lGame.PRG, lCurCode["genie"].InnerText);
+
+						lCodeNode = FXml.CreateElement("gamegenie");
+						GameNode.AppendChild(lCodeNode);
+
+						lAttribute = FXml.CreateAttribute("code");
+						lAttribute.Value = lCurCode["genie"].InnerText.ToUpper().Trim();
+						lCodeNode.Attributes.Append(lAttribute);
+
+						lAttribute = FXml.CreateAttribute("description");
+						lAttribute.Value = lCurCode["description"].InnerText;
+						lCodeNode.Attributes.Append(lAttribute);
+
+						GameCodes.Add(new GameGenieCode(lCurCode["genie"].InnerText.ToUpper().Trim(), lCurCode["description"].InnerText));
+					} catch (GameGenieFormatException) {
+						if (!AQuiet)
+							MessageBox.Show(string.Format(Resources.GameGenieFormatError, lCurCode["genie"].InnerText, FGame.Name),
+								Resources.Error, MessageBoxButtons.OK, MessageBoxIcon.Error);
+					} catch (GameGenieNotFoundException) {
+						if (!AQuiet)
+							MessageBox.Show(string.Format(Resources.GameGenieNotFound, lCurCode["genie"].InnerText, FGame.Name),
+								Resources.Error, MessageBoxButtons.OK, MessageBoxIcon.Error);
+					}
+				}
+			}
+		}
+
+		public void Save() {
+			if (GameCodes.Count == 0)
+				GameNode.ParentNode.RemoveChild(GameNode);
+			Directory.CreateDirectory(Path.GetDirectoryName(userDatabasePath));
+			FXml.Save(userDatabasePath);
+		}
+	}
 }

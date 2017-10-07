@@ -1,34 +1,13 @@
-﻿
-namespace com.clusterrr.hakchi_gui
-{
-    public class NesDefaultGame : INesMenuElement
-    {
-        private string code;
+﻿namespace com.clusterrr.hakchi_gui {
+	public class NesDefaultGame : INesMenuElement {
+		public int Size { get; set; }
 
-        public string Code
-        {
-            get { return code; }
-            set { code = value; }
-        }
-        private string name;
+		public string Code { get; set; }
 
-        public string Name
-        {
-            get { return name; }
-            set { name = value; }
-        }
+		public string Name { get; set; }
 
-        public override string ToString()
-        {
-            return Name;
-        }
-
-        private int size;
-
-        public int Size
-        {
-            get { return size; }
-            set { size = value; }
-        }
-    }
+		public override string ToString() {
+			return Name;
+		}
+	}
 }
