@@ -189,7 +189,7 @@ namespace com.clusterrr.clovershell {
 							lastAliveTime = DateTime.Now;
 							IsOnline = true;
 							OnConnected();
-							while (device.mUsbRegistry.IsAlive) {
+							while (device.UsbRegistryInfo.IsAlive) {
 								Thread.Sleep(100);
 								if (IdleTime.TotalSeconds >= 10 && Ping() < 0)
 									throw new ClovershellException("no answer from device");
