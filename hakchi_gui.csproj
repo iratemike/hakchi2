@@ -106,6 +106,10 @@
     <Reference Include="LibUsbDotNet, Version=2.2.8.104, Culture=neutral, processorArchitecture=MSIL">
       <HintPath>packages\LibUsbDotNet.2.2.8\lib\LibUsbDotNet.dll</HintPath>
     </Reference>
+    <Reference Include="mooftpservlib, Version=1.4.6497.31902, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>binaries\mooftpservlib.dll</HintPath>
+    </Reference>
     <Reference Include="SevenZipSharp, Version=0.64.3890.29348, Culture=neutral, PublicKeyToken=20de82c62b055c88, processorArchitecture=MSIL">
       <HintPath>packages\SevenZipSharp.0.64\lib\SevenZipSharp.dll</HintPath>
     </Reference>
@@ -163,13 +167,6 @@
     </Compile>
     <Compile Include="FtpServer\NesMiniFileSystemHandler.cs" />
     <Compile Include="FtpServer\NesMiniAuthHandler.cs" />
-    <Compile Include="FtpServer\DebugLogHandler.cs" />
-    <Compile Include="FtpServer\FileSystemHelper.cs" />
-    <Compile Include="FtpServer\IAuthHandler.cs" />
-    <Compile Include="FtpServer\IFileSystemHandler.cs" />
-    <Compile Include="FtpServer\ILogHandler.cs" />
-    <Compile Include="FtpServer\Server.cs" />
-    <Compile Include="FtpServer\Session.cs" />
     <Compile Include="GameGenieCodeAddModForm.cs">
       <SubType>Form</SubType>
     </Compile>

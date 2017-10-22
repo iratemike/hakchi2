@@ -157,7 +157,7 @@ namespace com.clusterrr.hakchi_gui {
 			ftpServer = new Server();
 			ftpServer.AuthHandler = new NesMiniAuthHandler();
 			ftpServer.FileSystemHandler = new NesMiniFileSystemHandler(Clovershell);
-			ftpServer.LogHandler = new DebugLogHandler();
+			ftpServer.LogHandler = new DefaultLogHandler();
 			ftpServer.LocalPort = 1021;
 
 			if (ConfigIni.FtpServer)
